@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// every time we change this file, we need to run "npx prisma generate"
+// non-nullable fields are required (can define default value) - David 05/07/2023
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  penName       String     @default("")
+  email         String?    @unique
+  emailVerified DateTime?
+  image         String?
+  voteBranchThreads String[] @default([])
+  likeThreads   Json @default("{}")
+  accounts      Account[]
+  sessions      Session[]
+  mainThread    MainThread[]
+  branchThread  BranchThread[]
+}
+
+model MainThread {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  title       String 
+  pilot       String
+  content     Json @default("{}")
+  contentBody String
+  phaseStage  Json @default("{}")
+  mainCharacter String
+  genre       String[]
+  tag         String @default("Incomplete")  
+  likes       Int @default(0)
+  userLikes   String[] @default([])
+  phase       Int @default(1)  
+  userId      String @db.ObjectId
+  user        User @relation(fields:[userId] , references: [id])
+  branchThread BranchThread[]
+}
+
+model BranchThread{
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  body        String 
+  votes       Int @default(0)
+  userId      String @db.ObjectId
+  mainThreadId String @db.ObjectId  
+  user        User @relation(fields:[userId] , references: [id])
+  mainThread  MainThread @relation(fields: [mainThreadId] , references: [id])
+}
