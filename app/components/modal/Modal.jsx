@@ -77,7 +77,7 @@ const Modal = ({ branchThread, mainThreadId, phaseStage }) => {
                     },
                 ],
                 temperature: 1.0,
-                max_tokens: 100,
+                max_tokens: 300,
             }),
         };
 

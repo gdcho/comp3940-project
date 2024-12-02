@@ -2,6 +2,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import Button from "./../../components/button/Button";
+import SpeechRecognition, {
+    useSpeechRecognition,
+} from "react-speech-recognition";
 
 export default function SubmitMainThread() {
     const router = useRouter();
@@ -13,6 +16,7 @@ export default function SubmitMainThread() {
     const [body, setBody] = useState("");
     const bodyRef = useRef("");
     const [showButtons, setShowButtons] = useState(true);
+    const [showInnerModal, setShowInnerModal] = useState(false);
 
     //Use Effect to get the user ID
     useEffect(() => {
@@ -65,7 +69,7 @@ export default function SubmitMainThread() {
                     },
                 ],
                 temperature: 0.5,
-                max_tokens: 100,
+                max_tokens: 300,
             }),
         };
 
@@ -147,6 +151,117 @@ export default function SubmitMainThread() {
         } else {
             return;
         }
+    };
+
+    //Event handler for voice generated content
+    const submitVoice = (e) => {
+        e.preventDefault();
+
+        const data = {
+            body: e.target.voiceGeneratedContent.value,
+        };
+
+        setBody(data.body);
+        closeInnerModal();
+    };
+
+    //Event handler for the show inner modal
+    const InnerModal = ({ setShowInnerModal }) => {
+        const {
+            transcript,
+            listening,
+            resetTranscript,
+            browserSupportsSpeechRecognition,
+            isMicrophoneAvailable,
+        } = useSpeechRecognition();
+
+        if (!browserSupportsSpeechRecognition) {
+            return <span>Browser doesn't support speech recognition.</span>;
+        }
+
+        if (!isMicrophoneAvailable) {
+            return <span>Microphone access is needed to begin.</span>;
+        }
+
+        return (
+            <div className="fixed -top-32 left-0 w-full h-full flex items-center justify-center bg-gray bg-opacity-40 z-40">
+                <div className="flex flex-col border-solid border-2 items-center bg-white px-10 pt-3 pb-5">
+                    <button
+                        onClick={closeInnerModal}
+                        type="button"
+                        className="text-sm p-1.5 mb-5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg"
+                        data-modal-hide="defaultModal"
+                    >
+                        {" "}
+                        <svg
+                            aria-hidden="true"
+                            className="w-5 h-5"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                fillRule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                            ></path>
+                        </svg>
+                        <span className="sr-only"></span>
+                    </button>
+                    <div className="mb-5">
+                        microphone: {listening ? "on" : "off"}
+                    </div>
+                    <div className="flex flex-row mb-5 justify-evenly">
+                        <Button
+                            type="button"
+                            text="Start"
+                            onClick={() =>
+                                SpeechRecognition.startListening({
+                                    continuous: true,
+                                    language: "en-CA",
+                                })
+                            }
+                        ></Button>
+                        <Button
+                            type="button"
+                            text="Stop"
+                            onClick={SpeechRecognition.stopListening}
+                        ></Button>
+                        <Button
+                            type="button"
+                            text="Reset"
+                            onClick={resetTranscript}
+                        ></Button>
+                    </div>
+                    <form className="mx-3" onSubmit={submitVoice}>
+                        <label
+                            htmlFor="text-input"
+                            className="block mb-3 text-md font-mono text-gray-900"
+                        >
+                            <textarea
+                                name="voiceGeneratedContent"
+                                id="text-input"
+                                rows="10"
+                                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                defaultValue={transcript}
+                            ></textarea>
+                        </label>
+                        <div className="flex justify-center py-2">
+                            <Button type="submit" text="Submit" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+        );
+    };
+    // Event handler for the show inner modal
+    const openInnerModal = (e) => {
+        e.preventDefault();
+        setShowInnerModal(true);
+    };
+    // Event handler for the close inner modal
+    const closeInnerModal = (e) => {
+        setShowInnerModal(false);
     };
 
     return (
@@ -284,12 +399,24 @@ export default function SubmitMainThread() {
                                 />
                             )}{" "}
                         </div>
+                        <div className="mb-2">
+                            {showButtons && (
+                                <Button
+                                    type="button"
+                                    text="Voice-to-Text"
+                                    onClick={() => setShowInnerModal(true)}
+                                />
+                            )}
+                        </div>
                         <div className="px-3">
                             {showButtons && <Button text="Upload" />}{" "}
                         </div>
                     </div>
                 </form>
             </div>
+            {showInnerModal && (
+                <InnerModal setShowInnerModal={setShowInnerModal} />
+            )}
         </section>
     );
 }
